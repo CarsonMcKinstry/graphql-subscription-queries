@@ -17,10 +17,10 @@ Start by cloning the repo and naviagating to the directory.
 
 ```
 subscription {
-  books [
+  books {
     author
     title
-  ]
+  }
 }
 ```
 
