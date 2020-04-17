@@ -20,22 +20,22 @@ const books = [
 
 app.get("/books", (req, res) => {
   const { requestId } = req.query;
-
   if (requestId != null) {
     const value = requests.get(requestId);
 
     if (value) {
       clearTimeout(reqTimer);
+      console.log(value);
       return res.send({
         requestId,
         pollingFinished: true,
-        value: books,
+        books: books,
       });
     } else {
       return res.send({
         requestId,
         pollingFinished: false,
-        value: null,
+        books: [],
       });
     }
   } else {
@@ -45,12 +45,12 @@ app.get("/books", (req, res) => {
 
     reqTimer = setTimeout(() => {
       requests.set(id, "finished...");
-    }, 5000);
+    }, 4000);
 
     return res.json({
       requestId: id,
       pollingFinished: false,
-      value: null,
+      books: [],
     });
   }
 });

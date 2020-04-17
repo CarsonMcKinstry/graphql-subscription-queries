@@ -1,7 +1,5 @@
 import { ApolloServer, gql } from "apollo-server";
 import fetch from "node-fetch";
-import { from, timer } from "rxjs";
-import { tap, map, mergeMap, switchMap, filter, take } from "rxjs/operators";
 
 const typeDefs = gql`
   type Query {
@@ -18,36 +16,49 @@ const typeDefs = gql`
   }
 `;
 
-const poll = () => {
-  return new Promise((res, rej) => {
-    let requestId;
-
-    const t = timer(0, 1000).pipe(
-      switchMap(() => {
-        let requestUrl = `http://localhost:3000/books`;
-        if (requestId) {
-          requestUrl += `?requestId=${requestId}`;
-        }
-        return from(fetch(requestUrl)).pipe(map((res) => res));
-      }),
-      mergeMap((res) => from(res.json())),
-      tap((res) => {
-        requestId = res.requestId;
-      }),
-      filter((res) => res.pollingFinished === true),
-      take(1)
-    );
-
-    t.subscribe(
-      (info) => {
-        res(info);
-      },
-      (err) => {
-        rej(err);
-      }
-    );
+function wait(n = 1000) {
+  return new Promise((res) => {
+    setTimeout(() => {
+      res(true);
+    }, n);
   });
-};
+}
+
+const jsonFetch = (endpoint, options) =>
+  fetch(endpoint, options).then((res) => res.json());
+
+async function* booksPoll() {
+  const endpoint = "http://localhost:3000/books";
+  let pollingFinished = false;
+  let requestId;
+  let timeToWait = 125;
+
+  while (!pollingFinished) {
+    try {
+      const response = requestId
+        ? await jsonFetch(`${endpoint}?requestId=${requestId}`)
+        : await jsonFetch(endpoint);
+
+      if (!requestId && response.requestId) {
+        requestId = response.requestId;
+      }
+
+      if (response.pollingFinished) {
+        pollingFinished = true;
+      }
+
+      yield {
+        books: response.books,
+      };
+
+      await wait(timeToWait);
+      timeToWait *= 2;
+    } catch (err) {
+      err.fail = true;
+      throw err;
+    }
+  }
+}
 
 const resolvers = {
   Query: {
@@ -56,15 +67,7 @@ const resolvers = {
   Subscription: {
     books: {
       subscribe: () => {
-        const polling = async function* () {
-          const { value } = await poll();
-
-          yield {
-            books: value,
-          };
-        };
-
-        return polling();
+        return booksPoll();
       },
     },
   },
