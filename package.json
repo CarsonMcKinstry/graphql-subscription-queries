@@ -14,7 +14,7 @@
     "graphql": "^15.0.0",
     "mobx": "^5.15.4",
     "mobx-utils": "^5.5.7",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^2.6.7",
     "subscriptions-transport-ws": "^0.9.16",
     "uuid": "^7.0.3",
     "ws": "^7.2.3"
